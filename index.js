@@ -16,10 +16,13 @@ const server = http.createServer(function(req, res)  {
   let path = parsedUrl.pathname;
   let trimmedPath = path.replace(/^\/+|\/+$/g, '');
 
+  // Get the HTTP method
+  let method = req.method.toLowerCase();
+
   res.end('Hello World!\n');
 
   // Log the request/response
-  console.log('Request received on path: '+trimmedPath)
+  console.log('Request received on path: '+trimmedPath+ 'with method: '+method)
 });
 
 // Start the server
