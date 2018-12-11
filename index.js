@@ -10,11 +10,15 @@ const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
 const config = require('./config');
 const fs = require('fs');
+const _data = require('./lib/data');
 
 
  // Instantiate the HTTP server
 let httpServer = http.createServer(function(req, res){
   unifiedServer(req, res);
+  _data.delete('test', 'test', function(err) {
+    console.log('Error from file delete', err);
+  });
 });
 
 // Start the HTTP server
