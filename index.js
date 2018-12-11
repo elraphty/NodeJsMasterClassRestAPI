@@ -4,33 +4,61 @@
  */
 
 // Dependencies
-var http = require('http');
-var url = require('url');
-var StringDecoder = require('string_decoder').StringDecoder;
-var config = require('./config');
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const StringDecoder = require('string_decoder').StringDecoder;
+const config = require('./config');
+const fs = require('fs');
 
- // Configure the server to respond to all requests with a string
-var server = http.createServer(function(req,res){
+
+ // Instantiate the HTTP server
+let httpServer = http.createServer(function(req, res){
+  unifiedServer(req, res);
+});
+
+// Start the HTTP server
+httpServer.listen(config.httpPort, function(){
+  console.log('The HTTP server is running on port '+config.httpPort);
+});
+
+// Instantiate the HTTPS server
+let httpsServerOptions = {
+  'key': fs.readFileSync('./https/key.pem'),
+  'cert': fs.readFileSync('./https/cert.pem')
+};
+
+let httpsServer = https.createServer(httpsServerOptions, function(req,res){
+  unifiedServer(req, res);
+});
+
+// Start the HTTPS server
+httpsServer.listen(config.httpsPort, function(){
+  console.log('The HTTPS server is running on port '+config.httpsPort);
+});
+
+// All the server logic for both the http and https server
+let unifiedServer = function(req, res){
 
   // Parse the url
-  var parsedUrl = url.parse(req.url, true);
+  let parsedUrl = url.parse(req.url, true);
 
   // Get the path
-  var path = parsedUrl.pathname;
-  var trimmedPath = path.replace(/^\/+|\/+$/g, '');
+  let path = parsedUrl.pathname;
+  let trimmedPath = path.replace(/^\/+|\/+$/g, '');
 
   // Get the query string as an object
-  var queryStringObject = parsedUrl.query;
+  let queryStringObject = parsedUrl.query;
 
   // Get the HTTP method
-  var method = req.method.toLowerCase();
+  let method = req.method.toLowerCase();
 
   //Get the headers as an object
-  var headers = req.headers;
+  let headers = req.headers;
 
   // Get the payload,if any
-  var decoder = new StringDecoder('utf-8');
-  var buffer = '';
+  let decoder = new StringDecoder('utf-8');
+  let buffer = '';
   req.on('data', function(data) {
       buffer += decoder.write(data);
   });
@@ -38,10 +66,10 @@ var server = http.createServer(function(req,res){
       buffer += decoder.end();
 
       // Check the router for a matching path for a handler. If one is not found, use the notFound handler instead.
-      var chosenHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handlers.notFound;
+      let chosenHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handlers.notFound;
 
       // Construct the data object to send to the handler
-      var data = {
+      let data = {
         'trimmedPath' : trimmedPath,
         'queryStringObject' : queryStringObject,
         'method' : method,
@@ -59,38 +87,32 @@ var server = http.createServer(function(req,res){
         payload = typeof(payload) == 'object'? payload : {};
 
         // Convert the payload to a string
-        var payloadString = JSON.stringify(payload);
+        let payloadString = JSON.stringify(payload);
 
         // Return the response
         res.setHeader('Content-Type', 'application/json');
         res.writeHead(statusCode);
         res.end(payloadString);
-        console.log("Returning this response: ",statusCode,payloadString);
-
+        console.log(trimmedPath,statusCode);
       });
 
   });
-});
-
-// Start the server
-server.listen(config.port,function(){
-  console.log('The server is up and running on port '+config.port+' in '+config.envName+' mode.');
-});
-
-// Define all the handlers
-var handlers = {};
-
-// Sample handler
-handlers.sample = function(data,callback){
-    callback(406,{'name':'sample handler'});
 };
 
-// Not found handler
+// Define all the handlers
+let handlers = {};
+
+// Ping handler
+handlers.ping = function(data,callback){
+  callback(200);
+};
+
+// Not-Found handler
 handlers.notFound = function(data,callback){
   callback(404);
 };
 
 // Define the request router
-var router = {
-  'sample' : handlers.sample
+let router = {
+  'ping' : handlers.ping
 };
