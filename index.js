@@ -8,17 +8,15 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
-const config = require('./config');
+const config = require('./lib/config');
 const fs = require('fs');
-const _data = require('./lib/data');
+// const _data = require('./lib/data');
+const handlers = require('./lib/handlers');
+const helpers = require('./lib/helpers');
 
-
- // Instantiate the HTTP server
+// Instantiate the HTTP server
 let httpServer = http.createServer(function(req, res){
   unifiedServer(req, res);
-  _data.delete('test', 'test', function(err) {
-    console.log('Error from file delete', err);
-  });
 });
 
 // Start the HTTP server
@@ -74,15 +72,15 @@ let unifiedServer = function(req, res){
 
       // Construct the data object to send to the handler
       let data = {
-        'trimmedPath' : trimmedPath,
-        'queryStringObject' : queryStringObject,
-        'method' : method,
-        'headers' : headers,
-        'payload' : buffer
+        'trimmedPath': trimmedPath,
+        'queryStringObject': queryStringObject,
+        'method': method,
+        'headers': headers,
+        'payload': helpers.parseJsonToObject(buffer)
       };
 
       // Route the request to the handler specified in the router
-      chosenHandler(data,function(statusCode,payload){
+      chosenHandler(data, function(statusCode, payload){
 
         // Use the status code returned from the handler, or set the default status code to 200
         statusCode = typeof(statusCode) == 'number' ? statusCode : 200;
@@ -103,20 +101,10 @@ let unifiedServer = function(req, res){
   });
 };
 
-// Define all the handlers
-let handlers = {};
-
-// Ping handler
-handlers.ping = function(data,callback){
-  callback(200);
-};
-
-// Not-Found handler
-handlers.notFound = function(data,callback){
-  callback(404);
-};
-
 // Define the request router
 let router = {
-  'ping' : handlers.ping
+  'ping': handlers.ping,
+  'users': handlers.users,
+  'tokens': handlers.tokens,
+  'checks': handlers.checks
 };
